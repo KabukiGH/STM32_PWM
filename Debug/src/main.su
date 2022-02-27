@@ -1,0 +1,9 @@
+main.c:28:6:ADC_WaitForConv	4	static
+main.c:36:10:ADC_GetVal	4	static
+main.c:41:5:main	16	static
+main.c:66:6:ADC_Init	4	static
+main.c:106:6:ADC_Enable	16	static
+main.c:117:6:DMA_Config	4	static
+main.c:138:6:ADC_Start	4	static
+main.c:148:6:DMA_Init	4	static
+main.c:183:10:mapping	24	static
