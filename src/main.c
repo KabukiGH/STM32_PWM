@@ -25,35 +25,61 @@ void DMA_Config (void);
 void ADC_Start(void);
 void DMA_Init (void);
 uint32_t mapping(uint32_t au32_IN, uint32_t au32_INmin, uint32_t au32_INmax, uint32_t au32_OUTmin, uint32_t au32_OUTmax);
+void ADC_WaitForConv (void);
+uint16_t ADC_GetVal (void);
+void Delay_ms(uint16_t time_ms);
 
-
-void ADC_WaitForConv (void)
+void TIM2_Init(void)
 {
-	/*************************************************
-	EOC Flag will be set, once the conversion is finished
-	*************************************************/
-	while (!(ADC1->SR & (1<<1)));  // wait for EOC flag to set
+	// 1. Set clock
+	RCC -> APB1ENR |= (1<<0); // enable tim2 clock (1<<0); macro RCC_APB1ENR_TIM2EN
+
+	// 2. Configure the output pin:
+
+    /* a) Select the output mode by writing CCS bits in CCMRx register */
+	TIM2 ->CCMR1 |= (1<<3); // OC1PE
+
+	// 3. Select the PWM mode PWM1 o by writing OCxM bits in CCMRx register
+	TIM2 -> CCMR1 |= (6<<4);//  Set OC1M: Output PWM mode 1 Analog Pin A0
+
+	// 4. Program the period and the duty cycle respectively in ARR and CCRx registers
+
+	/*  50hz freq and duty 3/4 */
+	TIM2->PSC = 7;
+	TIM2->ARR = 39999;
+	TIM2 -> CCR1 = 30000; // duty ccr1 / arr *100 %
+
+	//5. Set the preload bit in CCMRx register and the ARPE bit in the CR1 register
+
+	//ARPE: Auto-reload preload enable
+	TIM2 -> CR1 |= (1<<7);//ARPE
+
+	//6. Select the counting mode: edge-aligned mode: the counter must be configured up-counting or downcounting
+
+	// Center-aligned mode 1.
+	//TIM2 -> CR1 |= (1<<5);
+
+	//6. Enable the capture compare
+
+	TIM2 -> CCER |= (1<<0); // 1: On - OC1 signal is output on the corresponding output pin
+	TIM2 -> EGR |= (1<<0); //Re-initialize the counter and generates an update of the registers
+
+	//7. Enable the counter.
+
+	TIM2->CR1 = TIM_CR1_CEN;
+
+	// Config Pin
+	GPIOA -> MODER |= (2<<0); // PA0 10: Alternate function mode
+	GPIOA -> OTYPER &=~(1<<0);// 0: Output push-pull (reset state)
+
+	//!!!!!!!!!!!!
+	// GPIO alternate function: GPIOA ->  AFR[1] Px8 - Px15, AFR[0] Px0 - Px7
+
+	GPIOA ->AFR[0] |= (1<<0); // Set AF1, TIM2
+
+
 }
 
-uint16_t ADC_GetVal (void)
-{
-	return ADC1->DR;  // Read the Data Register
-}
-
-void Delay_ms(uint16_t time_ms)
-{
-	static int config_flag = 1;
-	msTicks=0;
-
-	if(config_flag)
-	{
-		SysTick_Config(SystemCoreClock/1000); // set interrupt period every 1ms
-		config_flag = 0;
-	}
-
-	while(msTicks<time_ms);
-
-}
 
 int main(void)
 {
@@ -61,9 +87,12 @@ int main(void)
 	ADC_Init ();
 	ADC_Enable ();
 	//DMA_Init ();
-
 	//DMA_Config ();
+	TIM2_Init();
+
 	ADC_Start ();
+
+
 
 	while (1)
 	{
@@ -208,4 +237,32 @@ void DMA_Init (void)
 uint32_t mapping(uint32_t au32_IN, uint32_t au32_INmin, uint32_t au32_INmax, uint32_t au32_OUTmin, uint32_t au32_OUTmax)
 {
     return ((((au32_IN - au32_INmin)*(au32_OUTmax - au32_OUTmin))/(au32_INmax - au32_INmin)) + au32_OUTmin);
+}
+
+void ADC_WaitForConv (void)
+{
+	/*************************************************
+	EOC Flag will be set, once the conversion is finished
+	*************************************************/
+	while (!(ADC1->SR & (1<<1)));  // wait for EOC flag to set
+}
+
+uint16_t ADC_GetVal (void)
+{
+	return ADC1->DR;  // Read the Data Register
+}
+
+void Delay_ms(uint16_t time_ms)
+{
+	static int config_flag = 1;
+	msTicks=0;
+
+	if(config_flag)
+	{
+		SysTick_Config(SystemCoreClock/1000); // set interrupt period every 1ms
+		config_flag = 0;
+	}
+
+	while(msTicks<time_ms);
+
 }
