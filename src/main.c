@@ -16,6 +16,8 @@ Copyright (c) 2019 STMicroelectronics
 /* Private variables */
 volatile uint16_t ADC_VAL = 0;
 uint16_t angle = 0;
+uint16_t msTicks = 0;
+
 /* Private function prototypes */
 void ADC_Init (void);
 void ADC_Enable (void);
@@ -38,6 +40,21 @@ uint16_t ADC_GetVal (void)
 	return ADC1->DR;  // Read the Data Register
 }
 
+void Delay_ms(uint16_t time_ms)
+{
+	static int config_flag = 1;
+	msTicks=0;
+
+	if(config_flag)
+	{
+		SysTick_Config(SystemCoreClock/1000); // set interrupt period every 1ms
+		config_flag = 0;
+	}
+
+	while(msTicks<time_ms);
+
+}
+
 int main(void)
 {
 
@@ -55,9 +72,17 @@ int main(void)
 	ADC_WaitForConv();
 	// Map The ADC Result To Servo Pulse Width
 	angle = mapping(ADC_VAL, 0, 4096, 0, 180);
+	Delay_ms (1000);
 
-	//Delay_ms (1000);
+	int breakPtr = 0;
+
 	}
+}
+
+/* Interrupts */
+void SysTick_Handler(void)
+{
+msTicks++;
 }
 
 
