@@ -44,10 +44,15 @@ void TIM2_Init(void)
 
 	// 4. Program the period and the duty cycle respectively in ARR and CCRx registers
 
-	/*  50hz freq and duty 3/4 */
-	TIM2->PSC = 7;
-	TIM2->ARR = 39999;
-	TIM2 -> CCR1 = 30000; // duty ccr1 / arr *100 %
+	/*  Set freq 50Hz */
+
+/*	For example, If I want to give a pulse width of 1 ms i.e. (1*1000/20) = 50%,
+    I will write 50 instead of X in CCR1 register.
+    For 2 ms, It will be 100%, and for 1.5 ms, It will be 75% and so on*/
+
+	TIM2->PSC = 319;
+	TIM2->ARR = 999;
+	//TIM2 -> CCR1 = 998; // duty ccr1 / arr *100 %
 
 	//5. Set the preload bit in CCMRx register and the ARPE bit in the CR1 register
 
@@ -56,7 +61,7 @@ void TIM2_Init(void)
 
 	//6. Select the counting mode: edge-aligned mode: the counter must be configured up-counting or downcounting
 
-	// Center-aligned mode 1.
+	// Center-aligned mode 1 off
 	//TIM2 -> CR1 |= (1<<5);
 
 	//6. Enable the capture compare
@@ -66,10 +71,10 @@ void TIM2_Init(void)
 
 	//7. Enable the counter.
 
-	TIM2->CR1 = TIM_CR1_CEN;
+	TIM2->CR1 |= TIM_CR1_CEN;
 
 	// Config Pin
-	GPIOA -> MODER |= (2<<0); // PA0 10: Alternate function mode
+	GPIOA -> MODER |= (2<<0); // PA0 10: Alternate function mode PIN A1
 	GPIOA -> OTYPER &=~(1<<0);// 0: Output push-pull (reset state)
 
 	//!!!!!!!!!!!!
@@ -97,11 +102,20 @@ int main(void)
 	while (1)
 	{
 
-	ADC_VAL = ADC_GetVal();
+	/*ADC_VAL = ADC_GetVal();
 	ADC_WaitForConv();
 	// Map The ADC Result To Servo Pulse Width
 	angle = mapping(ADC_VAL, 0, 4096, 0, 180);
-	Delay_ms (1000);
+	Delay_ms (1000);*/
+
+	//TIM2 -> CCR1 = 50; // duty cycle is 1 ms, according to Real servo position -45 Deg
+	TIM2 -> CCR1 = 25; // duty cycle is 1 ms, according to Real servo position -45 Deg
+	Delay_ms (2000);
+	TIM2 -> CCR1 = 75; //  duty cycle is 1.5 ms according to Real servo position 0 Deg
+	Delay_ms (2000);
+	//TIM2 -> CCR1 = 100; //  duty cycle is 2 ms  according to Real servo position +45 Deg
+	TIM2 -> CCR1 = 125; // duty cycle is 1 ms, according to Real servo position -45 Deg
+	Delay_ms (2000);
 
 	int breakPtr = 0;
 
@@ -152,7 +166,7 @@ void ADC_Init (void)
 	ADC1->SQR3 |= (1<<0);  // SEQ1 for Channel 1
 
 //7. Set the Respective GPIO PINs in the Analog Mode
-	GPIOA->MODER |= (3<<2);  // analog mode for PA 1 (channel 1) PIN A1
+	GPIOA->MODER |= (3<<2);  // analog mode for PA 1 (channel 1)
 
 }
 
