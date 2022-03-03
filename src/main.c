@@ -15,7 +15,7 @@ Copyright (c) 2019 STMicroelectronics
 /* Private macro */
 /* Private variables */
 volatile uint16_t ADC_VAL = 0;
-uint16_t angle = 0;
+volatile uint16_t angle = 0;
 uint16_t msTicks = 0;
 
 /* Private function prototypes */
@@ -28,62 +28,9 @@ uint32_t mapping(uint32_t au32_IN, uint32_t au32_INmin, uint32_t au32_INmax, uin
 void ADC_WaitForConv (void);
 uint16_t ADC_GetVal (void);
 void Delay_ms(uint16_t time_ms);
-
-void TIM2_Init(void)
-{
-	// 1. Set clock
-	RCC -> APB1ENR |= (1<<0); // enable tim2 clock (1<<0); macro RCC_APB1ENR_TIM2EN
-
-	// 2. Configure the output pin:
-
-    /* a) Select the output mode by writing CCS bits in CCMRx register */
-	TIM2 ->CCMR1 |= (1<<3); // OC1PE
-
-	// 3. Select the PWM mode PWM1 o by writing OCxM bits in CCMRx register
-	TIM2 -> CCMR1 |= (6<<4);//  Set OC1M: Output PWM mode 1 Analog Pin A0
-
-	// 4. Program the period and the duty cycle respectively in ARR and CCRx registers
-
-	/*  Set freq 50Hz */
-
-/*	For example, If I want to give a pulse width of 1 ms i.e. (1*1000/20) = 50%,
-    I will write 50 instead of X in CCR1 register.
-    For 2 ms, It will be 100%, and for 1.5 ms, It will be 75% and so on*/
-
-	TIM2->PSC = 319;
-	TIM2->ARR = 999;
-	//TIM2 -> CCR1 = 998; // duty ccr1 / arr *100 %
-
-	//5. Set the preload bit in CCMRx register and the ARPE bit in the CR1 register
-
-	//ARPE: Auto-reload preload enable
-	TIM2 -> CR1 |= (1<<7);//ARPE
-
-	//6. Select the counting mode: edge-aligned mode: the counter must be configured up-counting or downcounting
-
-	// Center-aligned mode 1 off
-	//TIM2 -> CR1 |= (1<<5);
-
-	//6. Enable the capture compare
-
-	TIM2 -> CCER |= (1<<0); // 1: On - OC1 signal is output on the corresponding output pin
-	TIM2 -> EGR |= (1<<0); //Re-initialize the counter and generates an update of the registers
-
-	//7. Enable the counter.
-
-	TIM2->CR1 |= TIM_CR1_CEN;
-
-	// Config Pin
-	GPIOA -> MODER |= (2<<0); // PA0 10: Alternate function mode PIN A1
-	GPIOA -> OTYPER &=~(1<<0);// 0: Output push-pull (reset state)
-
-	//!!!!!!!!!!!!
-	// GPIO alternate function: GPIOA ->  AFR[1] Px8 - Px15, AFR[0] Px0 - Px7
-
-	GPIOA ->AFR[0] |= (1<<0); // Set AF1, TIM2
+void TIM2_Init(void);
 
 
-}
 
 
 int main(void)
@@ -91,8 +38,8 @@ int main(void)
 
 	ADC_Init ();
 	ADC_Enable ();
-	//DMA_Init ();
-	//DMA_Config ();
+	DMA_Init ();
+	DMA_Config ();
 	TIM2_Init();
 
 	ADC_Start ();
@@ -102,14 +49,14 @@ int main(void)
 	while (1)
 	{
 
-	ADC_VAL = ADC_GetVal();
-	ADC_WaitForConv();
+	//ADC_WaitForConv();
+	//ADC_VAL = ADC_GetVal();
+
 	// Map The ADC Result To Servo Pulse Width
 	angle = mapping(ADC_VAL, 0, 4096, 25, 125);
-	Delay_ms (1000);
-
+	// Set PWM duty cycle
 	TIM2 -> CCR1 = angle;
-	Delay_ms (1000);
+	//Delay_ms (100);
 
 
 	/* Testing PWM range
@@ -125,8 +72,8 @@ int main(void)
 
 	int breakPtr = 0;
 
-	}
-}
+	} // end while
+} // end main
 
 /* Interrupts */
 void SysTick_Handler(void)
@@ -159,8 +106,8 @@ void ADC_Init (void)
     ADC1->CR2 |= (1<<1);     // enable continuous conversion mode
    // ADC1->CR2 |= (1<<10);    // EOC after each conversion
 	ADC1->CR2 &= ~(1<<11);   // Data Alignment RIGHT
-	//ADC1->CR2 |= (1<<8);  //DMA mode enabled
-	//ADC1->CR2 |= (1<<9);  // DMA enable continuous request
+	ADC1->CR2 |= (1<<8);  //DMA mode enabled
+	ADC1->CR2 |= (1<<9);  // DMA enable continuous request
 
 //4. Set the Sampling Time for the channels
 	//ADC1->SMPR2 &= ~(1<<3);  // Sampling time of 3 cycles for channel 1
@@ -201,7 +148,7 @@ void DMA_Config (void)
 	************************************************/
 	DMA2_Stream0->PAR = (uint32_t)&ADC1->DR; // source
 	// Destination Address is memory address
-	DMA2_Stream0->M0AR = (uint32_t)ADC_VAL; // target
+	DMA2_Stream0->M0AR = (uint32_t)&ADC_VAL; // target
 	// Set the size of the transfer
 	DMA2_Stream0->NDTR = 1; // size 1 == 8bit
 	// Enable the DMA Stream
@@ -272,6 +219,7 @@ uint16_t ADC_GetVal (void)
 	return ADC1->DR;  // Read the Data Register
 }
 
+
 void Delay_ms(uint16_t time_ms)
 {
 	static int config_flag = 1;
@@ -284,5 +232,62 @@ void Delay_ms(uint16_t time_ms)
 	}
 
 	while(msTicks<time_ms);
+
+}
+
+
+void TIM2_Init(void)
+{
+	// 1. Set clock
+	RCC -> APB1ENR |= (1<<0); // enable tim2 clock (1<<0); macro RCC_APB1ENR_TIM2EN
+
+	// 2. Configure the output pin:
+
+    /* a) Select the output mode by writing CCS bits in CCMRx register */
+	TIM2 ->CCMR1 |= (1<<3); // OC1PE
+
+	// 3. Select the PWM mode PWM1 o by writing OCxM bits in CCMRx register
+	TIM2 -> CCMR1 |= (6<<4);//  Set OC1M: Output PWM mode 1 Analog Pin A0
+
+	// 4. Program the period and the duty cycle respectively in ARR and CCRx registers
+
+	/*  Set freq 50Hz */
+
+/*	For example, If I want to give a pulse width of 1 ms i.e. (1*1000/20) = 50%,
+    I will write 50 instead of X in CCR1 register.
+    For 2 ms, It will be 100%, and for 1.5 ms, It will be 75% and so on*/
+
+	TIM2->PSC = 319;
+	TIM2->ARR = 999;
+	//TIM2 -> CCR1 = 998; // duty ccr1 / arr *100 %
+
+	//5. Set the preload bit in CCMRx register and the ARPE bit in the CR1 register
+
+	//ARPE: Auto-reload preload enable
+	TIM2 -> CR1 |= (1<<7);//ARPE
+
+	//6. Select the counting mode: edge-aligned mode: the counter must be configured up-counting or downcounting
+
+	// Center-aligned mode 1 off
+	//TIM2 -> CR1 |= (1<<5);
+
+	//6. Enable the capture compare
+
+	TIM2 -> CCER |= (1<<0); // 1: On - OC1 signal is output on the corresponding output pin
+	TIM2 -> EGR |= (1<<0); //Re-initialize the counter and generates an update of the registers
+
+	//7. Enable the counter.
+
+	TIM2->CR1 |= TIM_CR1_CEN;
+
+	// Config Pin
+	GPIOA -> MODER |= (2<<0); // PA0 10: Alternate function mode PIN A1
+	GPIOA -> OTYPER &=~(1<<0);// 0: Output push-pull (reset state)
+
+	//!!!!!!!!!!!!
+	// GPIO alternate function: GPIOA ->  AFR[1] Px8 - Px15, AFR[0] Px0 - Px7
+
+	GPIOA ->AFR[0] |= (1<<0); // Set AF1, TIM2
+
 
 }
