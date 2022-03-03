@@ -102,20 +102,26 @@ int main(void)
 	while (1)
 	{
 
-	/*ADC_VAL = ADC_GetVal();
+	ADC_VAL = ADC_GetVal();
 	ADC_WaitForConv();
 	// Map The ADC Result To Servo Pulse Width
-	angle = mapping(ADC_VAL, 0, 4096, 0, 180);
-	Delay_ms (1000);*/
+	angle = mapping(ADC_VAL, 0, 4096, 25, 125);
+	Delay_ms (1000);
 
+	TIM2 -> CCR1 = angle;
+	Delay_ms (1000);
+
+
+	/* Testing PWM range
 	//TIM2 -> CCR1 = 50; // duty cycle is 1 ms, according to Real servo position -45 Deg
-	TIM2 -> CCR1 = 25; // duty cycle is 1 ms, according to Real servo position -45 Deg
+	TIM2 -> CCR1 = 25; // duty cycle is 0.5 ms, according to Real servo position -90 Deg
 	Delay_ms (2000);
 	TIM2 -> CCR1 = 75; //  duty cycle is 1.5 ms according to Real servo position 0 Deg
 	Delay_ms (2000);
 	//TIM2 -> CCR1 = 100; //  duty cycle is 2 ms  according to Real servo position +45 Deg
-	TIM2 -> CCR1 = 125; // duty cycle is 1 ms, according to Real servo position -45 Deg
+	TIM2 -> CCR1 = 125; // duty cycle is 2.5 ms, according to Real servo position +90 Deg
 	Delay_ms (2000);
+	*/
 
 	int breakPtr = 0;
 
