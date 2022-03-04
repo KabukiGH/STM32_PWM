@@ -21,8 +21,8 @@ uint16_t msTicks = 0;
 /* Private function prototypes */
 void ADC_Init (void);
 void ADC_Enable (void);
-void DMA_Config (void);
 void ADC_Start(void);
+void DMA_Config (void);
 void DMA_Init (void);
 uint32_t mapping(uint32_t au32_IN, uint32_t au32_INmin, uint32_t au32_INmax, uint32_t au32_OUTmin, uint32_t au32_OUTmax);
 void ADC_WaitForConv (void);
@@ -30,6 +30,18 @@ uint16_t ADC_GetVal (void);
 void Delay_ms(uint16_t time_ms);
 void TIM2_Init(void);
 
+void LED_Init(void)
+{
+	//1. Enable GPIO B clock
+		RCC-> AHB1ENR |= (1<<1);  // enable GPIOB clock
+		__DSB();
+
+	//2. Set PB13 as output
+		GPIOB -> MODER |=  (1<<26); // 01: General purpose output mode
+		GPIOB -> OTYPER &= ~(1<<13);// 0: Output push-pull (reset state)
+		GPIOB -> PUPDR &= ~(3<<26); // 00: No pull-up, pull-down
+		GPIOB -> ODR ^= (1<<13); // turn off
+}
 
 
 
@@ -41,10 +53,11 @@ int main(void)
 	DMA_Init ();
 	DMA_Config ();
 	TIM2_Init();
+	LED_Init();
 
 	ADC_Start ();
 
-
+	NVIC_EnableIRQ(ADC_IRQn);
 
 	while (1)
 	{
@@ -72,8 +85,12 @@ int main(void)
 
 	int breakPtr = 0;
 
+
+
 	} // end while
 } // end main
+
+
 
 /* Interrupts */
 void SysTick_Handler(void)
@@ -82,6 +99,22 @@ msTicks++;
 }
 
 
+void ADC_IRQHandler(void)
+{
+	if ( ADC1->SR & ADC_SR_AWD )
+	{
+
+		ADC1->SR &= ~(1<<0); // clear flag
+		if(( ADC1 ->DR) >= (ADC1 -> HTR))
+		{
+			GPIOB -> ODR |= (1<<13); //
+		}
+		else
+		{
+			GPIOB -> ODR &= ~(1<<13); //
+		}
+	}
+}
 /* Private functions */
 
 void ADC_Init (void)
@@ -98,6 +131,7 @@ void ADC_Init (void)
 //1. Enable ADC and GPIO clock
 	RCC->APB2ENR |= (1<<8);  // enable ADC1 clock
 	RCC->AHB1ENR |= (1<<0);  // enable GPIOA clock
+	__DSB();
 
 //2. Set Resolution in the Control Register 1 (CR1)
 	ADC1->CR1 &= ~(1<<24);   // 12 bit RES
@@ -120,6 +154,21 @@ void ADC_Init (void)
 
 //7. Set the Respective GPIO PINs in the Analog Mode
 	GPIOA->MODER |= (3<<2);  // analog mode for PA 1 (channel 1)
+
+
+	//*******************************
+	// Add Watchdog
+	ADC1 -> CR1 |= (1<<23);	// Bit 23 AWDEN: Analog watchdog enable on regular channels
+	ADC1 -> CR1 |= (1<<9); // 1: Analog watchdog enabled on a single channel
+	ADC1 ->CR1 |= (1<<0);// select channel: 00001: ADC analog input Channel 1
+	ADC1 -> CR1 |= (1<<6); // Bit 6 AWDIE: Analog watchdog interrupt enable
+
+	ADC1 -> LTR = 0;// Set ADC watchdog lower threshold register (ADC_LTR)
+	ADC1 -> HTR = 2048; // ADC watchdog higher threshold register (ADC_HTR)
+
+
+	//*******************************
+
 
 }
 
@@ -179,6 +228,7 @@ void DMA_Init (void)
 
 	// 1. DMA2 clock enable
 	RCC -> AHB1ENR |= (1<<22);
+	__DSB();
 
 	// 2. Set the Data Direction
 	DMA2_Stream0 -> CR &= ~(3<<10); // 00: Peripheral-to-memory
@@ -253,18 +303,17 @@ void TIM2_Init(void)
 
 	/*  Set freq 50Hz */
 
-/*	For example, If I want to give a pulse width of 1 ms i.e. (1*1000/20) = 50%,
+    /*For example, If I want to give a pulse width of 1 ms i.e. (1*1000/20) = 50%,
     I will write 50 instead of X in CCR1 register.
-    For 2 ms, It will be 100%, and for 1.5 ms, It will be 75% and so on*/
+    For 2 ms, It will be 100%, and for 1.5 ms, It will be 75% and so on */
 
 	TIM2->PSC = 319;
 	TIM2->ARR = 999;
-	//TIM2 -> CCR1 = 998; // duty ccr1 / arr *100 %
 
 	//5. Set the preload bit in CCMRx register and the ARPE bit in the CR1 register
 
 	//ARPE: Auto-reload preload enable
-	TIM2 -> CR1 |= (1<<7);//ARPE
+	TIM2 -> CR1 |= (1<<7);
 
 	//6. Select the counting mode: edge-aligned mode: the counter must be configured up-counting or downcounting
 
