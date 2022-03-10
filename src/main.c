@@ -107,11 +107,11 @@ void ADC_IRQHandler(void)
 		ADC1->SR &= ~(1<<0); // clear flag
 		if(( ADC1 ->DR) >= (ADC1 -> HTR))
 		{
-			GPIOB -> ODR |= (1<<13); //
+			GPIOB -> ODR |=  GPIO_ODR_ODR_13;//(1<<13); //
 		}
 		else
 		{
-			GPIOB -> ODR &= ~(1<<13); //
+			GPIOB -> ODR &=  ~GPIO_ODR_ODR_13; //~(1<<13); //
 		}
 	}
 }

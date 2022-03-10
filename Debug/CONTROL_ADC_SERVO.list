@@ -29,15 +29,15 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING
  12 .debug_ranges 000000c8  00000000  00000000  00011e48  2**3
                   CONTENTS, READONLY, DEBUGGING
- 13 .debug_line   000005a7  00000000  00000000  00011f10  2**0
+ 13 .debug_line   000005a8  00000000  00000000  00011f10  2**0
                   CONTENTS, READONLY, DEBUGGING
- 14 .debug_str    0000097d  00000000  00000000  000124b7  2**0
+ 14 .debug_str    0000097d  00000000  00000000  000124b8  2**0
                   CONTENTS, READONLY, DEBUGGING
- 15 .comment      0000007c  00000000  00000000  00012e34  2**0
+ 15 .comment      0000007c  00000000  00000000  00012e35  2**0
                   CONTENTS, READONLY
- 16 .debug_frame  000002dc  00000000  00000000  00012eb0  2**2
+ 16 .debug_frame  000002dc  00000000  00000000  00012eb4  2**2
                   CONTENTS, READONLY, DEBUGGING
- 17 .stabstr      0000003f  00000000  00000000  0001318c  2**0
+ 17 .stabstr      0000003f  00000000  00000000  00013190  2**0
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -267,38 +267,40 @@ void ADC_IRQHandler(void)
  80002f4:	2b00      	cmp	r3, #0
  80002f6:	d018      	beq.n	800032a <ADC_IRQHandler+0x42>
 	{
+
+		ADC1->SR &= ~(1<<0); // clear flag
+ 80002f8:	4a0e      	ldr	r2, [pc, #56]	; (8000334 <ADC_IRQHandler+0x4c>)
+ 80002fa:	4b0e      	ldr	r3, [pc, #56]	; (8000334 <ADC_IRQHandler+0x4c>)
+ 80002fc:	681b      	ldr	r3, [r3, #0]
+ 80002fe:	f023 0301 	bic.w	r3, r3, #1
+ 8000302:	6013      	str	r3, [r2, #0]
 		if(( ADC1 ->DR) >= (ADC1 -> HTR))
- 80002f8:	4b0e      	ldr	r3, [pc, #56]	; (8000334 <ADC_IRQHandler+0x4c>)
- 80002fa:	6cda      	ldr	r2, [r3, #76]	; 0x4c
- 80002fc:	4b0d      	ldr	r3, [pc, #52]	; (8000334 <ADC_IRQHandler+0x4c>)
- 80002fe:	6a5b      	ldr	r3, [r3, #36]	; 0x24
- 8000300:	429a      	cmp	r2, r3
- 8000302:	d306      	bcc.n	8000312 <ADC_IRQHandler+0x2a>
+ 8000304:	4b0b      	ldr	r3, [pc, #44]	; (8000334 <ADC_IRQHandler+0x4c>)
+ 8000306:	6cda      	ldr	r2, [r3, #76]	; 0x4c
+ 8000308:	4b0a      	ldr	r3, [pc, #40]	; (8000334 <ADC_IRQHandler+0x4c>)
+ 800030a:	6a5b      	ldr	r3, [r3, #36]	; 0x24
+ 800030c:	429a      	cmp	r2, r3
+ 800030e:	d306      	bcc.n	800031e <ADC_IRQHandler+0x36>
 		{
-			GPIOB -> ODR |= (1<<13); //
- 8000304:	4a0c      	ldr	r2, [pc, #48]	; (8000338 <ADC_IRQHandler+0x50>)
- 8000306:	4b0c      	ldr	r3, [pc, #48]	; (8000338 <ADC_IRQHandler+0x50>)
- 8000308:	695b      	ldr	r3, [r3, #20]
- 800030a:	f443 5300 	orr.w	r3, r3, #8192	; 0x2000
- 800030e:	6153      	str	r3, [r2, #20]
- 8000310:	e005      	b.n	800031e <ADC_IRQHandler+0x36>
-		}
+			GPIOB -> ODR |=  GPIO_ODR_ODR_13;//(1<<13); //
+ 8000310:	4a09      	ldr	r2, [pc, #36]	; (8000338 <ADC_IRQHandler+0x50>)
+ 8000312:	4b09      	ldr	r3, [pc, #36]	; (8000338 <ADC_IRQHandler+0x50>)
+ 8000314:	695b      	ldr	r3, [r3, #20]
+ 8000316:	f443 5300 	orr.w	r3, r3, #8192	; 0x2000
+ 800031a:	6153      	str	r3, [r2, #20]
 		else
 		{
-			GPIOB -> ODR &= ~(1<<13); //
- 8000312:	4a09      	ldr	r2, [pc, #36]	; (8000338 <ADC_IRQHandler+0x50>)
- 8000314:	4b08      	ldr	r3, [pc, #32]	; (8000338 <ADC_IRQHandler+0x50>)
- 8000316:	695b      	ldr	r3, [r3, #20]
- 8000318:	f423 5300 	bic.w	r3, r3, #8192	; 0x2000
- 800031c:	6153      	str	r3, [r2, #20]
+			GPIOB -> ODR &=  ~GPIO_ODR_ODR_13; //~(1<<13); //
 		}
-	ADC1->SR &= ~(1<<0); // clear flag
- 800031e:	4a05      	ldr	r2, [pc, #20]	; (8000334 <ADC_IRQHandler+0x4c>)
- 8000320:	4b04      	ldr	r3, [pc, #16]	; (8000334 <ADC_IRQHandler+0x4c>)
- 8000322:	681b      	ldr	r3, [r3, #0]
- 8000324:	f023 0301 	bic.w	r3, r3, #1
- 8000328:	6013      	str	r3, [r2, #0]
 	}
+}
+ 800031c:	e005      	b.n	800032a <ADC_IRQHandler+0x42>
+			GPIOB -> ODR &=  ~GPIO_ODR_ODR_13; //~(1<<13); //
+ 800031e:	4a06      	ldr	r2, [pc, #24]	; (8000338 <ADC_IRQHandler+0x50>)
+ 8000320:	4b05      	ldr	r3, [pc, #20]	; (8000338 <ADC_IRQHandler+0x50>)
+ 8000322:	695b      	ldr	r3, [r3, #20]
+ 8000324:	f423 5300 	bic.w	r3, r3, #8192	; 0x2000
+ 8000328:	6153      	str	r3, [r2, #20]
 }
  800032a:	bf00      	nop
  800032c:	46bd      	mov	sp, r7

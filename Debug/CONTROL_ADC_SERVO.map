@@ -426,10 +426,10 @@ OUTPUT(CONTROL_ADC_SERVO.elf elf32-littlearm)
  .debug_ranges  0x00000090       0x20 src\startup_stm32f411xe.o
  .debug_ranges  0x000000b0       0x18 src\system_stm32f4xx.o
 
-.debug_line     0x00000000      0x5a7
- .debug_line    0x00000000      0x36b src\main.o
- .debug_line    0x0000036b       0x7b src\startup_stm32f411xe.o
- .debug_line    0x000003e6      0x1c1 src\system_stm32f4xx.o
+.debug_line     0x00000000      0x5a8
+ .debug_line    0x00000000      0x36c src\main.o
+ .debug_line    0x0000036c       0x7b src\startup_stm32f411xe.o
+ .debug_line    0x000003e7      0x1c1 src\system_stm32f4xx.o
 
 .debug_str      0x00000000      0x97d
  .debug_str     0x00000000      0x919 src\main.o
